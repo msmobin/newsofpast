@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>War Room — Monday, April 27, 2026</title>
+<style>
+  :root {
+    --bg:#090c14;--surface:#0f1520;--surface2:#141c2e;--border:#1e2d47;
+    --accent-red:#e63946;--accent-amber:#f4a261;--accent-gold:#ffd166;
+    --accent-green:#06d6a0;--accent-blue:#4cc9f0;
+    --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8;
+    --buy:#06d6a0;--sell:#e63946;--hold:#f4a261;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  /* TICKER */
+  .ticker-wrap{background:var(--accent-red);padding:8px 0;overflow:hidden;white-space:nowrap;position:sticky;top:0;z-index:100;border-bottom:2px solid #c1121f}
+  .ticker-label{display:inline-block;background:#900;color:#fff;font-weight:900;font-size:11px;letter-spacing:2px;padding:2px 14px;margin-right:16px;vertical-align:middle}
+  .ticker-inner{display:inline-block;animation:ticker 60s linear infinite}
+  .ticker-inner span{font-size:12px;font-weight:600;margin-right:60px;color:#fff}
+  .ticker-inner span::before{content:"▸ ";opacity:.7}
+  @keyframes ticker{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+  /* BACK LINK */
+  .back-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 40px;display:flex;align-items:center;gap:12px}
+  .back-bar a{color:var(--accent-blue);font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px}
+  .back-bar a:hover{color:#fff}
+  .back-bar .date-pill{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);border-radius:20px;padding:3px 14px;font-size:11px;color:var(--accent-red);font-weight:700;letter-spacing:1px}
+  /* HEADER */
+  header{background:linear-gradient(135deg,#060a14 0%,#0d1b2a 50%,#060a14 100%);border-bottom:1px solid var(--border);padding:28px 40px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .logo-area h1{font-size:32px;font-weight:900;letter-spacing:-1px;background:linear-gradient(90deg,#e63946,#f4a261,#ffd166);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-transform:uppercase;line-height:1}
+  .logo-area .sub{font-size:11px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase;margin-top:6px}
+  .live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(230,57,70,.15);border:1px solid var(--accent-red);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent-red);text-transform:uppercase;margin-bottom:8px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent-red);animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+  .timestamp{font-size:12px;color:var(--text-muted)}.war-day{font-size:13px;color:var(--accent-amber);font-weight:700;letter-spacing:1px;margin-top:4px}
+  /* MARKET STRIP */
+  .market-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 40px;display:flex;gap:32px;overflow-x:auto;scrollbar-width:none;flex-wrap:wrap}
+  .mkt-item{display:flex;flex-direction:column;align-items:center;min-width:90px}
+  .mkt-label{font-size:10px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px}
+  .mkt-val{font-size:15px;font-weight:700}.mkt-chg{font-size:11px;font-weight:600;margin-top:2px}
+  .up{color:var(--accent-green)}.down{color:var(--accent-red)}
+  .mkt-divider{width:1px;background:var(--border);align-self:stretch}
+  /* MAIN */
+  main{max-width:1400px;margin:0 auto;padding:36px 28px 60px}
+  /* SECTION */
+  .section-header{display:flex;align-items:center;gap:14px;margin-bottom:24px;margin-top:48px}
+  .section-header:first-child{margin-top:0}
+  .section-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .icon-war{background:rgba(230,57,70,.15);border:1px solid rgba(230,57,70,.4)}
+  .icon-biz{background:rgba(244,162,97,.15);border:1px solid rgba(244,162,97,.4)}
+  .icon-market{background:rgba(76,201,240,.15);border:1px solid rgba(76,201,240,.4)}
+  .icon-stocks{background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.4)}
+  .section-title h2{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .section-title p{font-size:12px;color:var(--text-muted);margin-top:2px;letter-spacing:.5px}
+  .war-title{color:var(--accent-red)}.biz-title{color:var(--accent-amber)}
+  .mkt-title{color:var(--accent-blue)}.stk-title{color:var(--accent-green)}
+  .section-count{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:1px}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:4px 0 28px}
+  /* CARDS */
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .card-grid.two-col{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+  .news-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative;overflow:hidden}
+  .news-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:3px 0 0 3px}
+  .card-war::before{background:linear-gradient(180deg,#e63946,#9d0208)}
+  .card-biz::before{background:linear-gradient(180deg,#f4a261,#e76f51)}
+  .card-market::before{background:linear-gradient(180deg,#4cc9f0,#4361ee)}
+  .card-stocks::before{background:linear-gradient(180deg,#06d6a0,#118ab2)}
+  .news-card:hover{transform:translateY(-3px);border-color:#2a3a54;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+  .card-source-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .source-badge{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:4px}
+  .src-cnn{background:rgba(204,0,0,.2);color:#ff6b6b;border:1px solid rgba(204,0,0,.4)}
+  .src-alj{background:rgba(230,126,34,.2);color:#f4a261;border:1px solid rgba(230,126,34,.4)}
+  .src-cnbc{background:rgba(76,201,240,.15);color:#4cc9f0;border:1px solid rgba(76,201,240,.3)}
+  .src-bloomberg{background:rgba(102,178,255,.15);color:#90e0ef;border:1px solid rgba(102,178,255,.3)}
+  .src-reuters{background:rgba(255,140,0,.15);color:#fca311;border:1px solid rgba(255,140,0,.3)}
+  .src-wapo{background:rgba(150,120,255,.15);color:#c8b6ff;border:1px solid rgba(150,120,255,.3)}
+  .src-wsj{background:rgba(100,200,150,.15);color:#80ffb0;border:1px solid rgba(100,200,150,.3)}
+  .src-ft{background:rgba(255,200,50,.15);color:#ffd166;border:1px solid rgba(255,200,50,.3)}
+  .src-nyt{background:rgba(200,200,200,.1);color:#cbd5e1;border:1px solid rgba(200,200,200,.2)}
+  .src-ms{background:rgba(0,150,136,.2);color:#4db6ac;border:1px solid rgba(0,150,136,.4)}
+  .src-fool{background:rgba(100,200,100,.15);color:#a8e6a3;border:1px solid rgba(100,200,100,.3)}
+  .src-nbcnews{background:rgba(100,130,255,.15);color:#b0c4ff;border:1px solid rgba(100,130,255,.3)}
+  .src-cbsnews{background:rgba(50,150,255,.15);color:#90c8ff;border:1px solid rgba(50,150,255,.3)}
+  .card-time{font-size:11px;color:var(--text-muted)}
+  .card-headline{font-size:15px;font-weight:700;line-height:1.45;color:var(--text);margin-bottom:10px;letter-spacing:-.2px}
+  .card-body{font-size:13px;color:var(--text-dim);line-height:1.65}
+  .card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+  .tag{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted)}
+  .tag-hot{background:rgba(230,57,70,.1);color:var(--accent-red);border-color:rgba(230,57,70,.3)}
+  .tag-new{background:rgba(6,214,160,.1);color:var(--accent-green);border-color:rgba(6,214,160,.3)}
+  .news-card.featured{grid-column:1/-1;background:linear-gradient(135deg,#0f1520 0%,#141c2e 100%);border-color:rgba(230,57,70,.3)}
+  .news-card.featured .card-headline{font-size:20px;line-height:1.35}
+  .news-card.featured .card-body{font-size:14px;max-width:900px}
+  .breaking-label{display:inline-flex;align-items:center;gap:6px;background:var(--accent-red);color:#fff;font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;padding:3px 12px;border-radius:4px;margin-bottom:12px}
+  /* STATS */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:30px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center}
+  .stat-val{font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:6px}
+  .stat-label{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+  .stat-sub{font-size:11px;margin-top:4px;font-weight:600;color:var(--text-muted)}
+  /* TABLE */
+  .stock-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:8px}
+  .table-header-bar{background:var(--surface2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
+  .table-header-bar h3{font-size:15px;font-weight:800;color:var(--text)}
+  .table-legend{display:flex;gap:16px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px}
+  .legend-dot{width:8px;height:8px;border-radius:50%}
+  .dot-buy{background:var(--buy)}.dot-sell{background:var(--sell)}.dot-hold{background:var(--hold)}
+  table{width:100%;border-collapse:collapse}
+  thead th{background:var(--surface2);padding:12px 16px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border)}
+  thead th:first-child{padding-left:24px}thead th:last-child{padding-right:24px}
+  tbody tr{border-bottom:1px solid rgba(30,45,71,.6);transition:background .15s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+  tbody td{padding:14px 16px;font-size:13px;vertical-align:top}
+  tbody td:first-child{padding-left:24px}tbody td:last-child{padding-right:24px}
+  .ticker-cell{font-size:15px;font-weight:900;letter-spacing:.5px}
+  .company-name{font-size:11px;color:var(--text-muted);margin-top:2px}
+  .sector-pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:3px 9px;border-radius:4px}
+  .sect-energy{background:rgba(244,162,97,.15);color:var(--accent-amber);border:1px solid rgba(244,162,97,.3)}
+  .sect-defense{background:rgba(76,201,240,.15);color:var(--accent-blue);border:1px solid rgba(76,201,240,.3)}
+  .sect-metals{background:rgba(255,209,102,.15);color:var(--accent-gold);border:1px solid rgba(255,209,102,.3)}
+  .sect-airline{background:rgba(230,57,70,.12);color:var(--accent-red);border:1px solid rgba(230,57,70,.25)}
+  .sect-consumer{background:rgba(148,163,184,.12);color:var(--text-dim);border:1px solid rgba(148,163,184,.2)}
+  .action-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:6px}
+  .action-buy{background:rgba(6,214,160,.15);color:var(--buy);border:1px solid rgba(6,214,160,.4)}
+  .action-sell{background:rgba(230,57,70,.15);color:var(--sell);border:1px solid rgba(230,57,70,.4)}
+  .action-hold{background:rgba(244,162,97,.15);color:var(--hold);border:1px solid rgba(244,162,97,.4)}
+  .evidence-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+  .evidence-list li{font-size:12px;color:var(--text-dim);line-height:1.5;padding-left:14px;position:relative}
+  .evidence-list li::before{content:'›';position:absolute;left:0;color:var(--text-muted);font-weight:700}
+  .evidence-source{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--accent-blue);text-transform:uppercase;opacity:.8}
+  .price-target{font-size:13px;font-weight:700}
+  .price-upside{font-size:11px;font-weight:600;margin-top:3px}
+  .upside-pos{color:var(--accent-green)}.upside-neg{color:var(--accent-red)}
+  .risk-bar-wrap{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .risk-bar{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+  .risk-fill{height:100%;border-radius:2px}
+  .risk-low .risk-fill{background:var(--accent-green);width:30%}
+  .risk-med .risk-fill{background:var(--accent-amber);width:55%}
+  .risk-high .risk-fill{background:var(--accent-red);width:85%}
+  .risk-label{font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;white-space:nowrap}
+  .disclaimer{margin-top:48px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent-amber);border-radius:8px;padding:16px 20px;font-size:12px;color:var(--text-muted);line-height:1.7}
+  .disclaimer strong{color:var(--accent-amber)}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:60px}
+  footer p{font-size:12px;color:var(--text-muted)}
+  @media(max-width:700px){header,main,.market-strip{padding:20px 16px}.card-grid,.card-grid.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="ticker-wrap">
+  <span class="ticker-label">BREAKING</span>
+  <div class="ticker-inner"><span>Iran Vows Strait of Hormuz 'Will Not Return to Previous State' — Oil Spikes 2%</span> <span>Iran FM Araghchi Meets Putin in St. Petersburg — Peace Talks Stall</span> <span>Iran's New Hormuz Proposal Would Reopen Strait — But Nuclear Demands Left Unresolved</span> <span>Trump Cancels Pakistan Envoy Trip — Tells Iran to 'Just Call'</span> <span>US Naval Blockade Holds at Iranian Ports — Tehran Demands Withdrawal as Precondition</span></div>
+</div>
+
+<div class="back-bar">
+  <a href="../index.html">← Calendar</a>
+  <span class="date-pill">Monday, April 27, 2026</span>
+  <span style="font-size:11px;color:var(--text-muted);margin-left:auto">Generated April 27, 2026 — 12:51 PM</span>
+</div>
+
+<header>
+  <div class="logo-area">
+    <h1>War Room</h1>
+    <div class="sub">US–Iran Crisis Intelligence Dashboard</div>
+  </div>
+  <div style="text-align:right">
+    <div class="live-badge"><span class="live-dot"></span>Daily Intelligence</div>
+    <div class="timestamp">Monday, April 27, 2026</div>
+    <div class="war-day">Generated 12:51 PM</div>
+  </div>
+</header>
+
+<div class="market-strip">
+      <div class="mkt-item">
+        <div class="mkt-label">S&P 500</div>
+        <div class="mkt-val down">7,130</div>
+        <div class="mkt-chg down">▼ -0.10%</div>
+      </div><div class="mkt-divider"></div>
+      <div class="mkt-item">
+        <div class="mkt-label">Nasdaq</div>
+        <div class="mkt-val down">24,594</div>
+        <div class="mkt-chg down">▼ -0.05%</div>
+      </div><div class="mkt-divider"></div>
+      <div class="mkt-item">
+        <div class="mkt-label">Brent</div>
+        <div class="mkt-val up">$107.58</div>
+        <div class="mkt-chg up">▲ +2.14%</div>
+      </div><div class="mkt-divider"></div>
+      <div class="mkt-item">
+        <div class="mkt-label">Gold</div>
+        <div class="mkt-val up">$3,310</div>
+        <div class="mkt-chg up">▲ +0.8%</div>
+      </div><div class="mkt-divider"></div>
+      <div class="mkt-item">
+        <div class="mkt-label">Nat. Gas</div>
+        <div class="mkt-val up">$5.87</div>
+        <div class="mkt-chg up">▲ +1.9%</div>
+      </div><div class="mkt-divider"></div>
+      <div class="mkt-item">
+        <div class="mkt-label">VIX</div>
+        <div class="mkt-val up">19.4</div>
+        <div class="mkt-chg up">▲ +0.6</div>
+      </div></div>
+
+<main>
+
+  <div class="section-header">
+    <div class="section-icon icon-war">⚔️</div>
+    <div class="section-title">
+      <h2 class="war-title">1 — War: Military &amp; Geopolitical Updates</h2>
+      <p>Live conflict coverage aggregated from major news outlets</p>
+    </div>
+    <div class="section-count">5 STORIES</div>
+  </div>
+  <div class="divider"></div>
+  <div class="card-grid">
+    <div class="news-card card-war featured">
+      <div class="breaking-label">⚡ Breaking Now</div>
+      <div class="card-source-row">
+        <span class="source-badge src-cnn">CNN</span>
+        <span class="card-time">Today, 07:14 EDT</span>
+      </div>
+      <div class="card-headline">Iran Vows Strait of Hormuz 'Will Not Return to Previous State' — Oil Spikes 2%</div>
+      <div class="card-body">Iranian officials declared the Strait of Hormuz will never revert to its pre-war status under any circumstances. President Pezeshkian added that Tehran will not enter 'forced negotiations' and demands the US naval blockade at Iranian ports end before any agreement is reached. Brent crude surged 2.14% to $107.58 on the news.</div>
+      <div class="card-tags"><span class="tag tag-hot">Breaking</span><span class="tag">Hormuz</span><span class="tag">Oil</span></div>
+    </div>
+
+    <div class="news-card card-war">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-alj">Al Jazeera</span>
+        <span class="card-time">Today, 06:49 EDT</span>
+      </div>
+      <div class="card-headline">Iran FM Araghchi Meets Putin in St. Petersburg — Peace Talks Stall</div>
+      <div class="card-body">Iranian Foreign Minister Araghchi met Putin and Lavrov in St. Petersburg, but talks made little progress. Araghchi claimed the US has achieved none of its war goals. Russia's envoy Ulyanov warned Washington must drop 'blackmailing' ultimatums before any diplomatic breakthrough is possible.</div>
+      <div class="card-tags"><span class="tag">Diplomacy</span><span class="tag">Russia</span><span class="tag">Iran</span></div>
+    </div>
+
+    <div class="news-card card-war">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnn">CNN</span>
+        <span class="card-time">Today, 07:21 EDT</span>
+      </div>
+      <div class="card-headline">Iran's New Hormuz Proposal Would Reopen Strait — But Nuclear Demands Left Unresolved</div>
+      <div class="card-body">A source familiar with negotiations says Iran's latest proposal would reopen the Strait of Hormuz but leaves US demands on Iran's nuclear programme entirely unaddressed. The two core sticking points — nuclear activity and Hormuz access — remain unresolved, with both sides far apart on terms.</div>
+      <div class="card-tags"><span class="tag">Hormuz</span><span class="tag">Nuclear</span><span class="tag">Negotiations</span></div>
+    </div>
+
+    <div class="news-card card-war">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnn">CNN</span>
+        <span class="card-time">Apr 25, 2026</span>
+      </div>
+      <div class="card-headline">Trump Cancels Pakistan Envoy Trip — Tells Iran to 'Just Call'</div>
+      <div class="card-body">President Trump canceled Special Envoy Steve Witkoff and Jared Kushner's planned trip to Pakistan for a second round of Iran talks, citing travel time. Trump said negotiations will now be handled by phone, adding uncertainty about Iran's leadership structure is complicating the diplomatic process.</div>
+      <div class="card-tags"><span class="tag">Trump</span><span class="tag">Diplomacy</span><span class="tag">Witkoff</span></div>
+    </div>
+
+    <div class="news-card card-war">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-reuters">Reuters</span>
+        <span class="card-time">Today, 05:00 EDT</span>
+      </div>
+      <div class="card-headline">US Naval Blockade Holds at Iranian Ports — Tehran Demands Withdrawal as Precondition</div>
+      <div class="card-body">The US Navy continues to enforce its blockade at key Iranian ports, a posture Tehran calls a fundamental obstacle to any peace deal. Iran's president publicly reiterated that the blockade must be lifted unconditionally before formal negotiations can begin, hardening an already entrenched standoff.</div>
+      <div class="card-tags"><span class="tag">Blockade</span><span class="tag">Navy</span><span class="tag">Iran</span></div>
+    </div></div>
+
+  <div class="section-header">
+    <div class="section-icon icon-biz">🏭</div>
+    <div class="section-title">
+      <h2 class="biz-title">2 — Business Impact: Economy &amp; Industry</h2>
+      <p>Energy markets, supply chains, corporate earnings, consumer impact</p>
+    </div>
+    <div class="section-count">4 STORIES</div>
+  </div>
+  <div class="divider"></div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-red)">$107.58</div>
+      <div class="stat-label">Brent Crude / Barrel</div>
+      <div class="stat-sub" style="color:var(--accent-red)">↑ ~49% since Feb 27 (~$72)</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-red)">$4.06</div>
+      <div class="stat-label">Avg. US Gas Price / Gallon</div>
+      <div class="stat-sub" style="color:var(--accent-red)">↑ $1.00+ since war began</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-red)">3.3%</div>
+      <div class="stat-label">US CPI (Annual, March 2026)</div>
+      <div class="stat-sub" style="color:var(--accent-red)">Highest since May 2024</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-red)">2 mb/d</div>
+      <div class="stat-label">Hormuz Oil Flow</div>
+      <div class="stat-sub" style="color:var(--accent-red)">↓ from 20 mb/d pre-war</div>
+    </div></div>
+  <div class="card-grid two-col">
+    <div class="news-card card-biz">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">IEA: Hormuz Closure Is 'Largest Oil Supply Disruption in History'</div>
+      <div class="card-body">The International Energy Agency says the 2026 Iran war has triggered the biggest oil supply shock ever recorded. Crude flows through the Strait collapsed from 20 million barrels per day to just over 2 mb/d. Even with alternative routes ramping up, Gulf producers cut output by more than 14 mb/d.</div>
+      <div class="card-tags"><span class="tag">Oil</span><span class="tag">IEA</span><span class="tag">Hormuz</span></div>
+    </div>
+
+    <div class="news-card card-biz">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cbsnews">CBS News</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">Americans Face $1-Per-Gallon 'War Tax' as Pump Prices Hit $4.06</div>
+      <div class="card-body">US consumers are bearing the brunt of the Iran war through surging gasoline prices, with the national average hitting $4.06 per gallon. Economists warn inflation will remain elevated throughout 2026, with the PCE index potentially reaching 4% by year-end — double the Fed's 2% target.</div>
+      <div class="card-tags"><span class="tag">Inflation</span><span class="tag">Consumer</span><span class="tag">Gas Prices</span></div>
+    </div>
+
+    <div class="news-card card-biz">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">Fed Rate Cut Expectations Pushed to Mid-2027 as War Fuels Inflation Fears</div>
+      <div class="card-body">Traders have pushed back expectations for the next Federal Reserve interest-rate cut all the way to mid-2027. Persistent energy-driven inflation and mounting US war costs are making the Fed's job significantly harder, with markets now pricing in a prolonged period of elevated rates.</div>
+      <div class="card-tags"><span class="tag">Fed</span><span class="tag">Rates</span><span class="tag">Inflation</span></div>
+    </div>
+
+    <div class="news-card card-biz">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">Brent Peaked Near $120 — Now at $107 as Ceasefire Hopes Provide Partial Relief</div>
+      <div class="card-body">Brent crude surged from $72 before the conflict to a war peak of nearly $120, before retreating to around $107 following a temporary ceasefire extension. Today's 2.14% gain reflects renewed anxiety after Iran's Hormuz warnings. Markets remain extremely sensitive to any shift in diplomatic signals.</div>
+      <div class="card-tags"><span class="tag">Oil</span><span class="tag">Brent</span><span class="tag">Commodities</span></div>
+    </div></div>
+
+  <div class="section-header">
+    <div class="section-icon icon-market">📈</div>
+    <div class="section-title">
+      <h2 class="mkt-title">3 — Stock Market: Wall Street Response</h2>
+      <p>Index performance, sector rotation, analyst sentiment</p>
+    </div>
+    <div class="section-count">4 STORIES</div>
+  </div>
+  <div class="divider"></div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-green)">+18.5%</div>
+      <div class="stat-label">S&P 500 From War Low</div>
+      <div class="stat-sub" style="color:var(--text-muted)">Trough (~Mar 4) → Apr 21 record</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-green)">7,137</div>
+      <div class="stat-label">S&P 500 Record Close</div>
+      <div class="stat-sub" style="color:var(--text-muted)">Set April 21, 2026 post-ceasefire</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-green)">+6.8%</div>
+      <div class="stat-label">Nasdaq 1-Week Pop</div>
+      <div class="stat-sub" style="color:var(--text-muted)">Best week after ceasefire announced</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-green)">13</div>
+      <div class="stat-label">Nasdaq Win Streak (Days)</div>
+      <div class="stat-sub" style="color:var(--text-muted)">Longest since 1992 — snapped Apr 25</div>
+    </div></div>
+  <div class="card-grid two-col">
+    <div class="news-card card-market">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">S&P 500 Opens Flat Monday as Oil Surge Offsets Peace-Deal Optimism</div>
+      <div class="card-body">US equities opened mixed Monday, with the S&P 500 slipping 0.10% and the Dow edging up 0.13%. A new Iranian proposal to reopen the Strait of Hormuz offered a brief lift, but surging oil prices and unresolved nuclear demands kept broader sentiment cautious heading into the week.</div>
+      <div class="card-tags"><span class="tag">S&P 500</span><span class="tag">Markets</span><span class="tag">Open</span></div>
+    </div>
+
+    <div class="news-card card-market">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Apr 21, 2026</span>
+      </div>
+      <div class="card-headline">S&P 500 and Nasdaq Hit Records After Trump Extends Iran Ceasefire</div>
+      <div class="card-body">The S&P 500 surged +1.05% to a record 7,137.90 and the Nasdaq jumped +1.64% to 24,657.57 after President Trump extended the US-Iran ceasefire. Strong Q1 earnings added fuel. The S&P had fully erased all war-period losses the prior week in a dramatic reversal of early-conflict selling.</div>
+      <div class="card-tags"><span class="tag">Records</span><span class="tag">Ceasefire</span><span class="tag">Rally</span></div>
+    </div>
+
+    <div class="news-card card-market">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-cnbc">CNBC</span>
+        <span class="card-time">Apr 25, 2026</span>
+      </div>
+      <div class="card-headline">Nasdaq's 13-Day Winning Streak Snaps as Iran Tensions Re-Escalate</div>
+      <div class="card-body">The Nasdaq's historic 13-session winning streak — its longest since 1992 — came to an end as Iran tensions flared again over the weekend. The S&P 500 fell 0.24% and the Nasdaq shed 0.26%. Deutsche Bank's macro chief warned 'complacent' investors risk being wrong-footed by rapid diplomatic reversals.</div>
+      <div class="card-tags"><span class="tag">Nasdaq</span><span class="tag">Volatility</span><span class="tag">Streak</span></div>
+    </div>
+
+    <div class="news-card card-market">
+      
+      <div class="card-source-row">
+        <span class="source-badge src-bloomberg">Bloomberg</span>
+        <span class="card-time">Today</span>
+      </div>
+      <div class="card-headline">Defense and Energy Stocks Diverge From Broader Market Amid War Uncertainty</div>
+      <div class="card-body">Defense contractors and energy producers continue to outperform the broader S&P 500 as the Iran war enters its 59th day. While the index is roughly flat on the year when adjusting for war-period swings, sector rotation into hard-asset and defense names has been pronounced since hostilities began in late February.</div>
+      <div class="card-tags"><span class="tag">Sector Rotation</span><span class="tag">Defense</span><span class="tag">Energy</span></div>
+    </div></div>
+
+  <div class="section-header">
+    <div class="section-icon icon-stocks">📊</div>
+    <div class="section-title">
+      <h2 class="stk-title">4 — Buy / Sell / Hold Intelligence Table</h2>
+      <p>Analyst consensus with evidence — updated April 27, 2026 — 12:51 PM</p>
+    </div>
+    <div class="section-count">8 EQUITIES</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="stock-table-wrap">
+    <div class="table-header-bar">
+      <h3>War-Environment Stock Intelligence — Monday, April 27, 2026</h3>
+      <div class="table-legend">
+        <div class="legend-item"><div class="legend-dot dot-buy"></div>BUY</div>
+        <div class="legend-item"><div class="legend-dot dot-hold"></div>HOLD</div>
+        <div class="legend-item"><div class="legend-dot dot-sell"></div>SELL</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker / Company</th><th>Sector</th><th>Action</th>
+          <th>Price Target</th><th>News &amp; Evidence</th><th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="ticker-cell">RTX</div>
+            <div class="company-name">RTX Corporation</div>
+          </td>
+          <td><span class="sector-pill sect-defense">Defense</span></td>
+          <td><span class="action-badge action-buy">▲ BUY</span></td>
+          <td>
+            <div class="price-target">$216</div>
+            <div class="price-upside upside-pos">+12.0%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Melius Research upgraded to Buy; Middle East conflict drives missile/interceptor replacement demand — <span class="evidence-source">Reuters</span></li><li>Q1 2026 EPS of $1.78 beat $1.51 estimate by 18%; revenue $22.1B vs $21.44B forecast — <span class="evidence-source">CNBC</span></li><li>$268B backlog; government orders to double Tomahawk production from 500 to 1,000 units annually — <span class="evidence-source">Bloomberg</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-low">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">LOW</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">LMT</div>
+            <div class="company-name">Lockheed Martin</div>
+          </td>
+          <td><span class="sector-pill sect-defense">Defense</span></td>
+          <td><span class="action-badge action-buy">▲ BUY</span></td>
+          <td>
+            <div class="price-target">$521</div>
+            <div class="price-upside upside-pos">+11.2%</div>
+          </td>
+          <td><ul class="evidence-list"><li>F-35 and THAAD demand surging as US and allied militaries replenish war stocks — <span class="evidence-source">Motley Fool</span></li><li>Pentagon FY2027 budget proposal prioritizes missile defense and next-gen air systems — <span class="evidence-source">Bloomberg</span></li><li>Analysts raise estimates on extended conflict timeline; backlog at record levels — <span class="evidence-source">CNBC</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-low">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">LOW</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">XOM</div>
+            <div class="company-name">ExxonMobil</div>
+          </td>
+          <td><span class="sector-pill sect-energy">Energy</span></td>
+          <td><span class="action-badge action-buy">▲ BUY</span></td>
+          <td>
+            <div class="price-target">$138</div>
+            <div class="price-upside upside-pos">+14.5%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Brent at $107 drives massive free-cash-flow expansion; EPS estimates raised across the Street — <span class="evidence-source">CNBC</span></li><li>Permian Basin output insulated from Hormuz disruption; non-Gulf supply at premium — <span class="evidence-source">Bloomberg</span></li><li>IEA flags prolonged supply crunch even under ceasefire scenarios — <span class="evidence-source">Reuters</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-med">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">MEDIUM</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">GLD</div>
+            <div class="company-name">SPDR Gold Shares ETF</div>
+          </td>
+          <td><span class="sector-pill sect-metals">Gold</span></td>
+          <td><span class="action-badge action-buy">▲ BUY</span></td>
+          <td>
+            <div class="price-target">$310</div>
+            <div class="price-upside upside-pos">+8.4%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Gold benefits from war risk premium, dollar hedging, and inflation fears pushing PCE toward 4% — <span class="evidence-source">Bloomberg</span></li><li>Fed rate cuts pushed to mid-2027, but real yields still supportive of gold near term — <span class="evidence-source">WSJ</span></li><li>Central bank gold buying at multi-decade highs amid geopolitical uncertainty — <span class="evidence-source">FT</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-low">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">LOW</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">CVX</div>
+            <div class="company-name">Chevron</div>
+          </td>
+          <td><span class="sector-pill sect-energy">Energy</span></td>
+          <td><span class="action-badge action-hold">► HOLD</span></td>
+          <td>
+            <div class="price-target">$168</div>
+            <div class="price-upside upside-pos">+5.1%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Strong oil price tailwind offset by Kazakhstan and Gulf exposure complexity — <span class="evidence-source">Reuters</span></li><li>Dividend yield remains attractive at ~4.2% but upside capped vs pure-play US producers — <span class="evidence-source">CNBC</span></li><li>Peace deal resolution could rapidly compress energy margins; binary risk warrants caution — <span class="evidence-source">Bloomberg</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-med">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">MEDIUM</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">DAL</div>
+            <div class="company-name">Delta Air Lines</div>
+          </td>
+          <td><span class="sector-pill sect-airline">Airlines</span></td>
+          <td><span class="action-badge action-sell">▼ SELL</span></td>
+          <td>
+            <div class="price-target">$38</div>
+            <div class="price-upside upside-neg">-12.0%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Jet fuel costs up 40%+ since war began, destroying margin; no meaningful fuel hedges in place — <span class="evidence-source">CNBC</span></li><li>International route disruptions and Middle East airspace closures reducing revenue miles — <span class="evidence-source">Reuters</span></li><li>CBS News notes consumer summer travel budgets under pressure from $4.06/gallon gas nationally — <span class="evidence-source">CBS News</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-high">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">HIGH</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">MCD</div>
+            <div class="company-name">McDonald's</div>
+          </td>
+          <td><span class="sector-pill sect-consumer">Consumer</span></td>
+          <td><span class="action-badge action-hold">► HOLD</span></td>
+          <td>
+            <div class="price-target">$298</div>
+            <div class="price-upside upside-pos">+4.2%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Value-oriented fast food historically resilient in high-inflation environments as trade-down play — <span class="evidence-source">Motley Fool</span></li><li>Input cost inflation (packaging, transport) eating into margins despite pricing power — <span class="evidence-source">WSJ</span></li><li>CPI at 3.3% and rising consumer squeeze limits upside; hold for defensive income — <span class="evidence-source">CNBC</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-med">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">MEDIUM</span>
+      </div></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div class="ticker-cell">AMZN</div>
+            <div class="company-name">Amazon</div>
+          </td>
+          <td><span class="sector-pill sect-consumer">Consumer</span></td>
+          <td><span class="action-badge action-sell">▼ SELL</span></td>
+          <td>
+            <div class="price-target">$172</div>
+            <div class="price-upside upside-neg">-9.5%</div>
+          </td>
+          <td><ul class="evidence-list"><li>Elevated fuel costs pressure logistics and last-mile delivery economics significantly — <span class="evidence-source">Bloomberg</span></li><li>Consumer discretionary spending under pressure as gas hits $4.06/gal and PCE heads toward 4% — <span class="evidence-source">CBS News</span></li><li>Delayed Fed cuts mean higher-for-longer rates compress growth stock valuations; risk/reward unfavorable — <span class="evidence-source">WSJ</span></li></ul></td>
+          <td>
+      <div class="risk-bar-wrap risk-high">
+        <div class="risk-bar"><div class="risk-fill"></div></div>
+        <span class="risk-label">HIGH</span>
+      </div></td>
+        </tr></tbody>
+    </table>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Investment Disclaimer:</strong> This dashboard aggregates publicly available
+    news and analyst opinions for informational purposes only. It does not constitute
+    financial advice. All investment decisions carry risk. Always consult a qualified
+    financial advisor before making investment decisions.
+  </div>
+
+</main>
+
+<footer>
+  <p>War Room · Monday, April 27, 2026 · Auto-generated by War Room Intelligence System</p>
+</footer>
+
+</body>
+</html>

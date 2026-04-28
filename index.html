@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>War Room — Intelligence Archive</title>
+<style>
+  :root{--bg:#090c14;--surface:#0f1520;--surface2:#141c2e;--border:#1e2d47;
+    --accent-red:#e63946;--accent-amber:#f4a261;--accent-gold:#ffd166;
+    --accent-green:#06d6a0;--accent-blue:#4cc9f0;
+    --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  /* HEADER */
+  header{background:linear-gradient(135deg,#060a14,#0d1b2a,#060a14);border-bottom:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .logo h1{font-size:36px;font-weight:900;letter-spacing:-1px;background:linear-gradient(90deg,#e63946,#f4a261,#ffd166);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-transform:uppercase}
+  .logo p{font-size:11px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase;margin-top:6px}
+  .header-stats{display:flex;gap:24px}
+  .hstat{text-align:center}
+  .hstat-val{font-size:28px;font-weight:900;color:var(--accent-amber)}
+  .hstat-label{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+  /* LAYOUT */
+  .layout{max-width:1300px;margin:0 auto;padding:40px 28px 80px;display:grid;grid-template-columns:1fr 360px;gap:32px}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+  /* CALENDAR */
+  .cal-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .cal-nav{background:var(--surface2);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+  .cal-nav h2{font-size:20px;font-weight:800;color:var(--text)}
+  .cal-nav .year{font-size:14px;color:var(--accent-amber);font-weight:700;margin-left:10px}
+  .cal-legend{display:flex;gap:16px;font-size:11px;color:var(--text-muted)}
+  .cal-legend span{display:flex;align-items:center;gap:6px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:20px}
+  .cal-header{text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;padding:6px 0;margin-bottom:4px}
+  .cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-dim);position:relative;transition:background .15s}
+  .cal-cell.empty{opacity:0}
+  .cal-cell.today{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent-red);font-weight:800}
+  a.cal-cell{text-decoration:none;cursor:pointer;color:var(--text);background:var(--surface2);border:1px solid var(--border)}
+  a.cal-cell:hover{background:rgba(76,201,240,.12);border-color:rgba(76,201,240,.4);color:var(--accent-blue);transform:scale(1.05)}
+  a.cal-cell.today{background:rgba(230,57,70,.15);border-color:rgba(230,57,70,.5);color:#fff}
+  .dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--accent-green)}
+  /* SIDEBAR */
+  .sidebar{display:flex;flex-direction:column;gap:20px}
+  .latest-card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid rgba(230,57,70,.3);border-radius:14px;padding:22px;text-decoration:none;transition:border-color .2s,box-shadow .2s}
+  .latest-card:hover{border-color:rgba(230,57,70,.6);box-shadow:0 8px 32px rgba(230,57,70,.1)}
+  .latest-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent-red)}
+  .latest-date{font-size:13px;color:var(--text-muted)}
+  .latest-headline{font-size:15px;font-weight:700;color:var(--text);line-height:1.45}
+  .latest-cta{font-size:13px;font-weight:700;color:var(--accent-blue);margin-top:4px}
+  .recent-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .recent-title{background:var(--surface2);padding:14px 20px;font-size:13px;font-weight:800;color:var(--text);border-bottom:1px solid var(--border);letter-spacing:.3px}
+  .recent-item{display:flex;align-items:flex-start;gap:10px;padding:14px 20px;border-bottom:1px solid rgba(30,45,71,.5);text-decoration:none;transition:background .15s}
+  .recent-item:last-child{border-bottom:none}
+  .recent-item:hover{background:rgba(255,255,255,.02)}
+  .recent-date{font-size:11px;font-weight:700;color:var(--accent-amber);white-space:nowrap;min-width:80px;margin-top:2px}
+  .recent-headline{font-size:12px;color:var(--text-dim);line-height:1.5;flex:1}
+  .recent-arrow{color:var(--text-muted);font-size:14px;margin-top:1px}
+  /* EMPTY STATE */
+  .empty-state{padding:60px 24px;text-align:center;color:var(--text-muted)}
+  .empty-state p{font-size:14px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <h1>War Room</h1>
+    <p>US–Iran Crisis · Daily Intelligence Archive</p>
+  </div>
+  <div class="header-stats">
+    <div class="hstat">
+      <div class="hstat-val">2</div>
+      <div class="hstat-label">Reports</div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="cal-section">
+    <div class="cal-nav">
+      <div><h2>April<span class="year">2026</span></h2></div>
+      <div class="cal-legend">
+        <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#06d6a0"/></svg> Report available</span>
+        <span style="color:var(--accent-red)">■ Today</span>
+      </div>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-header">Sun</div><div class="cal-header">Mon</div><div class="cal-header">Tue</div><div class="cal-header">Wed</div><div class="cal-header">Thu</div><div class="cal-header">Fri</div><div class="cal-header">Sat</div>
+      <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell">1</div><div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div><div class="cal-cell">5</div><div class="cal-cell">6</div><div class="cal-cell">7</div><div class="cal-cell">8</div><div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div><div class="cal-cell">12</div><div class="cal-cell">13</div><div class="cal-cell">14</div><div class="cal-cell">15</div><div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div><div class="cal-cell">19</div><div class="cal-cell">20</div><div class="cal-cell">21</div><div class="cal-cell">22</div><div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div><a class="cal-cell has-report" href="news/2026-04-27.html" title="Iran vows the Strait of Hormuz will never return to its pre-war state as new peace proposal stalls, sending Brent crude surging past $107 and deepening the worst oil supply crisis in history.">27<span class="dot"></span></a><a class="cal-cell has-report today" href="news/2026-04-28.html" title="Trump reviews Iran's peace proposal as ceasefire holds under strain, with Rubio declaring nuclear disarmament non-negotiable and oil topping $111 a barrel.">28<span class="dot"></span></a><div class="cal-cell">29</div><div class="cal-cell">30</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div>
+    </div>
+    
+  </div>
+
+  <div class="sidebar">
+    
+      <a class="latest-card" href="news/2026-04-28.html">
+        <div class="latest-label">Latest Report</div>
+        <div class="latest-date">April 28, 2026</div>
+        <div class="latest-headline">Trump reviews Iran's peace proposal as ceasefire holds under strain, with Rubio declaring nuclear disarmament non-negotiable and oil topping $111 a barrel.</div>
+        <div class="latest-cta">Open Report →</div>
+      </a>
+    <div class="recent-section">
+      <div class="recent-title">📋 All Reports</div>
+      
+      <a class="recent-item" href="news/2026-04-28.html">
+        <span class="recent-date">Apr 28, 2026</span>
+        <span class="recent-headline">Trump reviews Iran's peace proposal as ceasefire holds under strain, with Rubio declaring nuclear disarmament non-negotiable and oil topping $111 a barrel.</span>
+        <span class="recent-arrow">→</span>
+      </a>
+      <a class="recent-item" href="news/2026-04-27.html">
+        <span class="recent-date">Apr 27, 2026</span>
+        <span class="recent-headline">Iran vows the Strait of Hormuz will never return to its pre-war state as new peace proposal stalls, sending Brent crude surging past $107 and deepening the worst oil supply crisis in history.</span>
+        <span class="recent-arrow">→</span>
+      </a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

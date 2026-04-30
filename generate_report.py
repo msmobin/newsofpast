@@ -27,6 +27,43 @@ TODAY = date.today().isoformat()          # e.g. "2026-04-24"
 NOW   = datetime.now().strftime("%I:%M %p %Z").strip()
 RUN_TS = datetime.now().strftime("%B %d, %Y — %I:%M %p")
 
+# ── Market & index URL map (for clickable strip items) ────────────────────
+MARKET_URLS = {
+    "S&P 500":    "https://finance.yahoo.com/quote/%5EGSPC",
+    "Nasdaq":     "https://finance.yahoo.com/quote/%5EIXIC",
+    "Brent":      "https://finance.yahoo.com/quote/BZ%3DF",
+    "WTI":        "https://finance.yahoo.com/quote/CL%3DF",
+    "Gold":       "https://finance.yahoo.com/quote/GC%3DF",
+    "Nat. Gas":   "https://finance.yahoo.com/quote/NG%3DF",
+    "VIX":        "https://finance.yahoo.com/quote/%5EVIX",
+    "10-Yr UST":  "https://finance.yahoo.com/quote/%5ETNX",
+    "USD Index":  "https://finance.yahoo.com/quote/DX-Y.NYB",
+    "LMT":        "https://finance.yahoo.com/quote/LMT",
+    "XOM":        "https://finance.yahoo.com/quote/XOM",
+    "DAL":        "https://finance.yahoo.com/quote/DAL",
+}
+
+# ── Source URL map (for clickable badges) ─────────────────────────────────
+SOURCE_URLS = {
+    "src-cnn":      "https://www.cnn.com",
+    "src-alj":      "https://www.aljazeera.com",
+    "src-cnbc":     "https://www.cnbc.com",
+    "src-bloomberg":"https://www.bloomberg.com",
+    "src-reuters":  "https://www.reuters.com",
+    "src-wapo":     "https://www.washingtonpost.com",
+    "src-wsj":      "https://www.wsj.com",
+    "src-ft":       "https://www.ft.com",
+    "src-nyt":      "https://www.nytimes.com",
+    "src-ms":       "https://www.morganstanley.com/ideas",
+    "src-fool":     "https://www.fool.com",
+    "src-nbcnews":  "https://www.nbcnews.com",
+    "src-cbsnews":  "https://www.cbsnews.com",
+    "src-bbc":      "https://www.bbc.com/news",
+    "src-ap":       "https://apnews.com",
+    "src-schwab":   "https://www.schwab.com/learn",
+    "src-yahoo":    "https://finance.yahoo.com",
+}
+
 # ── Search helper ──────────────────────────────────────────────────────────
 def search(client: anthropic.Anthropic, query: str) -> str:
     """Run a single web-search query via Claude and return the text result."""
@@ -85,6 +122,7 @@ produce a single JSON object (no markdown, no code fences) with this exact schem
 
 {{
   "headline_of_day": "one-sentence most important story of the day",
+  "theme_emoji": "single emoji that best captures today's top story theme (e.g. ⚔️ 🚢 🕊️ 💥 🛢️ 📉 ☢️ 🤝 🚀 💣)",
   "market_strip": [
     {{"label": "S&P 500",  "value": "5,842", "change": "+0.43%", "dir": "up"}},
     {{"label": "Nasdaq",   "value": "18,921","change": "+0.67%", "dir": "up"}},
@@ -186,6 +224,10 @@ Keep body text under 60 words per story. Return ONLY the raw JSON object.
 
 # ── HTML rendering ─────────────────────────────────────────────────────────
 def source_badge(source: str, cls: str) -> str:
+    url = SOURCE_URLS.get(cls, "")
+    if url:
+        onclick = f"window.open('{url}','newsoutlet','width=1200,height=800,scrollbars=yes,resizable=yes'); return false;"
+        return f'<a href="{url}" class="source-badge {cls}" onclick="{onclick}" title="Open {source}">{source}</a>'
     return f'<span class="source-badge {cls}">{source}</span>'
 
 def render_tags(tags: list) -> str:
@@ -231,12 +273,17 @@ def render_mkt_strip(items: list) -> str:
     for i, item in enumerate(items):
         dir_cls = item.get("dir", "up")
         arrow = "▲" if dir_cls == "up" else "▼"
+        label = item['label']
+        url = MARKET_URLS.get(label, "")
+        onclick = f"window.open('{url}','market','width=1200,height=800,scrollbars=yes,resizable=yes'); return false;" if url else ""
+        tag_open  = f'<a href="{url}" class="mkt-item mkt-link" onclick="{onclick}" title="Research {label} on Yahoo Finance">' if url else '<div class="mkt-item">'
+        tag_close = "</a>" if url else "</div>"
         parts.append(f"""
-      <div class="mkt-item">
-        <div class="mkt-label">{item['label']}</div>
+      {tag_open}
+        <div class="mkt-label">{label}</div>
         <div class="mkt-val {dir_cls}">{item['value']}</div>
         <div class="mkt-chg {dir_cls}">{arrow} {item['change']}</div>
-      </div>""")
+      {tag_close}""")
         if i < len(items) - 1:
             parts.append('<div class="mkt-divider"></div>')
     return "".join(parts)
@@ -252,11 +299,16 @@ def render_stock_row(s: dict) -> str:
         <div class="risk-bar"><div class="risk-fill"></div></div>
         <span class="risk-label">{s.get('risk','MED')}</span>
       </div>"""
+    ticker = s['ticker']
+    yf_url = f"https://finance.yahoo.com/quote/{ticker.replace('/', '%2F')}"
+    onclick_t = f"window.open('{yf_url}','stock','width=1200,height=800,scrollbars=yes,resizable=yes'); return false;"
     return f"""
         <tr>
           <td>
-            <div class="ticker-cell">{s['ticker']}</div>
-            <div class="company-name">{s['company']}</div>
+            <a href="{yf_url}" class="ticker-link" onclick="{onclick_t}" title="Research {ticker} on Yahoo Finance">
+              <div class="ticker-cell">{ticker}</div>
+              <div class="company-name">{s['company']} ↗</div>
+            </a>
           </td>
           <td><span class="sector-pill {s.get('sector_class','sect-energy')}">{s['sector']}</span></td>
           <td><span class="action-badge {s.get('action_class','action-hold')}">{s.get('action_arrow','◆')} {s['action']}</span></td>
@@ -433,9 +485,28 @@ def render_daily_html(data: dict) -> str:
   .risk-label{{font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;white-space:nowrap}}
   .disclaimer{{margin-top:48px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent-amber);border-radius:8px;padding:16px 20px;font-size:12px;color:var(--text-muted);line-height:1.7}}
   .disclaimer strong{{color:var(--accent-amber)}}
+  /* SOURCE BADGE LINKS */
+  a.source-badge{{text-decoration:none;cursor:pointer;transition:opacity .15s,transform .15s}}
+  a.source-badge:hover{{opacity:.75;transform:scale(1.05)}}
+  /* MARKET STRIP LINKS */
+  a.mkt-link{{text-decoration:none;border-radius:8px;padding:4px 6px;margin:-4px -6px;transition:background .15s,transform .15s}}
+  a.mkt-link:hover{{background:rgba(76,201,240,.08);transform:translateY(-2px)}}
+  /* TICKER LINKS */
+  a.ticker-link{{text-decoration:none;display:block;border-radius:6px;padding:4px 6px;margin:-4px -6px;transition:background .15s}}
+  a.ticker-link:hover{{background:rgba(76,201,240,.08)}}
+  a.ticker-link:hover .ticker-cell{{color:var(--accent-blue)}}
+  a.ticker-link .company-name{{color:var(--text-muted)}}
+  /* COMMENTS */
+  .comments-section{{max-width:1400px;margin:0 auto;padding:0 28px 60px}}
+  .comments-header{{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-top:48px}}
+  .comments-header .section-icon{{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(114,9,183,.15);border:1px solid rgba(114,9,183,.4);flex-shrink:0}}
+  .comments-header h2{{font-size:22px;font-weight:800;color:#c77dff;letter-spacing:-.5px}}
+  .comments-header p{{font-size:12px;color:var(--text-muted);margin-top:2px}}
+  .comments-wrap{{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;min-height:200px}}
+  #disqus_thread a{{color:var(--accent-blue)}}
   footer{{background:var(--surface);border-top:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:60px}}
   footer p{{font-size:12px;color:var(--text-muted)}}
-  @media(max-width:700px){{header,main,.market-strip{{padding:20px 16px}}.card-grid,.card-grid.two-col{{grid-template-columns:1fr}}}}
+  @media(max-width:700px){{header,main,.market-strip,.comments-section{{padding:20px 16px}}.card-grid,.card-grid.two-col{{grid-template-columns:1fr}}}}
 </style>
 </head>
 <body>
@@ -453,8 +524,13 @@ def render_daily_html(data: dict) -> str:
 
 <header>
   <div class="logo-area">
-    <h1>War Room</h1>
-    <div class="sub">US–Iran Crisis Intelligence Dashboard</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span style="font-size:52px;line-height:1;filter:drop-shadow(0 0 12px rgba(230,57,70,.5))">{data.get('theme_emoji','⚔️')}</span>
+      <div>
+        <h1>War Room</h1>
+        <div class="sub">US–Iran Crisis Intelligence Dashboard</div>
+      </div>
+    </div>
   </div>
   <div style="text-align:right">
     <div class="live-badge"><span class="live-dot"></span>Daily Intelligence</div>
@@ -541,9 +617,38 @@ def render_daily_html(data: dict) -> str:
 
 </main>
 
+<!-- ── COMMENTS ── -->
+<div class="comments-section">
+  <div class="comments-header">
+    <div class="section-icon">💬</div>
+    <div class="section-title">
+      <h2>Comments &amp; Discussion</h2>
+      <p>Share your analysis, questions, or perspective on today's intelligence report</p>
+    </div>
+  </div>
+  <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin-bottom:28px"></div>
+  <div class="comments-wrap">
+    <div id="disqus_thread"></div>
+  </div>
+</div>
+
 <footer>
   <p>War Room · {formatted_date} · Auto-generated by War Room Intelligence System</p>
 </footer>
+
+<script>
+  var disqus_config = function () {{
+    this.page.url = 'https://www.newsofpast.com/news/{TODAY}.html';
+    this.page.identifier = 'warroom-{TODAY}';
+    this.page.title = '{formatted_date} — War Room Intelligence Report';
+  }};
+  (function() {{
+    var d = document, s = d.createElement('script');
+    s.src = 'https://newsofpast.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  }})();
+</script>
 
 </body>
 </html>"""

@@ -644,7 +644,7 @@ def render_daily_html(data: dict) -> str:
   }};
   (function() {{
     var d = document, s = d.createElement('script');
-    s.src = 'https://newsofpast.disqus.com/embed.js';
+    s.src = 'https://news-of-past.disqus.com/embed.js';
     s.setAttribute('data-timestamp', +new Date());
     (d.head || d.body).appendChild(s);
   }})();

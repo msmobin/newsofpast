@@ -304,20 +304,20 @@ def render_stock_row(s: dict) -> str:
     onclick_t = f"window.open('{yf_url}','stock','width=1200,height=800,scrollbars=yes,resizable=yes'); return false;"
     return f"""
         <tr>
-          <td>
+          <td data-label="Ticker">
             <a href="{yf_url}" class="ticker-link" onclick="{onclick_t}" title="Research {ticker} on Yahoo Finance">
               <div class="ticker-cell">{ticker}</div>
               <div class="company-name">{s['company']} ↗</div>
             </a>
           </td>
-          <td><span class="sector-pill {s.get('sector_class','sect-energy')}">{s['sector']}</span></td>
-          <td><span class="action-badge {s.get('action_class','action-hold')}">{s.get('action_arrow','◆')} {s['action']}</span></td>
-          <td>
+          <td data-label="Sector"><span class="sector-pill {s.get('sector_class','sect-energy')}">{s['sector']}</span></td>
+          <td data-label="Action"><span class="action-badge {s.get('action_class','action-hold')}">{s.get('action_arrow','◆')} {s['action']}</span></td>
+          <td data-label="Price Target">
             <div class="price-target">{s.get('price_target','—')}</div>
             <div class="price-upside {upside_cls}">{s.get('upside','')}</div>
           </td>
-          <td><ul class="evidence-list">{evidence_html}</ul></td>
-          <td>{risk_html}</td>
+          <td data-label="News &amp; Evidence"><ul class="evidence-list">{evidence_html}</ul></td>
+          <td data-label="Risk">{risk_html}</td>
         </tr>"""
 
 def render_daily_html(data: dict) -> str:
@@ -542,11 +542,14 @@ def render_daily_html(data: dict) -> str:
     /* Stats */
     .stats-row{{grid-template-columns:repeat(2,1fr);gap:10px}}
     .stat-val{{font-size:22px}}
-    /* Stock table — horizontal scroll with fade hint */
-    .stock-table-wrap{{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}}
-    .stock-table-wrap::after{{content:'';position:absolute;top:0;right:0;width:36px;height:100%;background:linear-gradient(90deg,transparent,rgba(9,12,20,.85));pointer-events:none;border-radius:0 14px 14px 0}}
-    table{{min-width:660px}}
+    /* Stock table — card stacking on mobile */
     .table-header-bar{{flex-direction:column;align-items:flex-start;gap:8px}}
+    .stock-table-wrap thead{{display:none}}
+    .stock-table-wrap table,.stock-table-wrap tbody,.stock-table-wrap tr,.stock-table-wrap td{{display:block;width:100%}}
+    .stock-table-wrap tr{{border:1px solid var(--border);border-radius:10px;margin:8px 12px;padding:4px 0;background:var(--surface2)}}
+    .stock-table-wrap td{{border:none;padding:10px 16px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid rgba(30,45,71,.4)}}
+    .stock-table-wrap td:last-child{{border-bottom:none}}
+    .stock-table-wrap td::before{{content:attr(data-label);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;min-width:88px;padding-top:2px;flex-shrink:0}}
     /* Comments */
     .comments-wrap{{padding:16px}}
     .comments-header h2{{font-size:18px}}
@@ -763,120 +766,168 @@ def build_recent_list(reports: list) -> str:
     return items
 
 def render_index(reports: list):
-    today = date.today()
-    yr, mo = today.year, today.month
-    import calendar as cal_mod
-    month_name = cal_mod.month_name[mo]
-    day_headers = "".join(f'<div class="cal-header">{d}</div>' for d in ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"])
-    cells = build_calendar_cells(reports, yr, mo)
-    recent = build_recent_list(reports)
+    reports_json = json.dumps(reports, ensure_ascii=False)
     total = len(reports)
-    latest = reports[0] if reports else None
-    latest_html = ""
-    if latest:
-        ld = datetime.strptime(latest["date"], "%Y-%m-%d").strftime("%B %d, %Y")
-        latest_html = f"""
-      <a class="latest-card" href="{latest['path']}">
-        <div class="latest-label">Latest Report</div>
-        <div class="latest-date">{ld}</div>
-        <div class="latest-headline">{latest['headline']}</div>
-        <div class="latest-cta">Open Report →</div>
-      </a>"""
 
-    INDEX_FILE.write_text(f"""<!DOCTYPE html>
+    latest_html = ""
+    if reports:
+        r = reports[0]
+        ld = datetime.strptime(r["date"], "%Y-%m-%d").strftime("%B %d, %Y")
+        latest_html = (
+            f'<a class="latest-card" href="{r["path"]}">'
+            f'<div class="latest-label">Latest Report</div>'
+            f'<div class="latest-date">{ld}</div>'
+            f'<div class="latest-headline">{r["headline"]}</div>'
+            f'<div class="latest-cta">Open Report &#8594;</div>'
+            f'</a>'
+        )
+
+    recent_html = ""
+    for r in reports[:30]:
+        d = datetime.strptime(r["date"], "%Y-%m-%d")
+        label = d.strftime("%b %d, %Y")
+        recent_html += (
+            f'<a class="recent-item" href="{r["path"]}">'
+            f'<span class="recent-date">{label}</span>'
+            f'<span class="recent-headline">{r["headline"]}</span>'
+            f'<span class="recent-arrow">&#8594;</span>'
+            f'</a>'
+        )
+    if not recent_html:
+        recent_html = '<div class="empty-state"><p>No reports yet.</p></div>'
+
+    page = '''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>War Room — Intelligence Archive</title>
 <style>
-  :root{{--bg:#090c14;--surface:#0f1520;--surface2:#141c2e;--border:#1e2d47;
+  :root{--bg:#090c14;--surface:#0f1520;--surface2:#141c2e;--border:#1e2d47;
     --accent-red:#e63946;--accent-amber:#f4a261;--accent-gold:#ffd166;
     --accent-green:#06d6a0;--accent-blue:#4cc9f0;
-    --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8}}
-  *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}}
-  /* HEADER */
-  header{{background:linear-gradient(135deg,#060a14,#0d1b2a,#060a14);border-bottom:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}}
-  .logo h1{{font-size:36px;font-weight:900;letter-spacing:-1px;background:linear-gradient(90deg,#e63946,#f4a261,#ffd166);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-transform:uppercase}}
-  .logo p{{font-size:11px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase;margin-top:6px}}
-  .header-stats{{display:flex;gap:24px}}
-  .hstat{{text-align:center}}
-  .hstat-val{{font-size:28px;font-weight:900;color:var(--accent-amber)}}
-  .hstat-label{{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}}
-  /* LAYOUT */
-  .layout{{max-width:1300px;margin:0 auto;padding:40px 28px 80px;display:grid;grid-template-columns:1fr 360px;gap:32px}}
-  /* ── TABLET ── */
-  @media(max-width:900px){{
-    .layout{{grid-template-columns:1fr;padding:24px 16px 60px}}
-    header{{padding:20px;flex-wrap:wrap;gap:12px}}
-    .logo h1{{font-size:28px}}
-  }}
-  /* ── MOBILE ── */
-  @media(max-width:600px){{
-    header{{padding:16px;flex-direction:column;align-items:flex-start}}
-    .logo h1{{font-size:22px}}
-    .logo p{{font-size:9px;letter-spacing:2px}}
-    .header-stats{{gap:16px}}
-    .hstat-val{{font-size:22px}}
-    .layout{{padding:16px 12px 40px;gap:20px}}
-    .cal-nav{{padding:12px 16px;flex-direction:column;align-items:flex-start;gap:8px}}
-    .cal-nav h2{{font-size:17px}}
-    .cal-legend{{font-size:10px;gap:10px}}
-    .cal-grid{{padding:10px;gap:2px}}
-    .cal-header{{font-size:9px;padding:4px 0}}
-    .cal-cell{{font-size:12px;border-radius:6px}}
-    .recent-item{{flex-direction:column;gap:3px;padding:12px 16px}}
-    .recent-date{{min-width:auto}}
-    .latest-card{{padding:16px}}
-    .latest-headline{{font-size:14px}}
-  }}
-  /* CALENDAR */
-  .cal-section{{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}}
-  .cal-nav{{background:var(--surface2);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}}
-  .cal-nav h2{{font-size:20px;font-weight:800;color:var(--text)}}
-  .cal-nav .year{{font-size:14px;color:var(--accent-amber);font-weight:700;margin-left:10px}}
-  .cal-legend{{display:flex;gap:16px;font-size:11px;color:var(--text-muted)}}
-  .cal-legend span{{display:flex;align-items:center;gap:6px}}
-  .cal-grid{{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:20px}}
-  .cal-header{{text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;padding:6px 0;margin-bottom:4px}}
-  .cal-cell{{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-dim);position:relative;transition:background .15s}}
-  .cal-cell.empty{{opacity:0}}
-  .cal-cell.today{{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent-red);font-weight:800}}
-  a.cal-cell{{text-decoration:none;cursor:pointer;color:var(--text);background:var(--surface2);border:1px solid var(--border)}}
-  a.cal-cell:hover{{background:rgba(76,201,240,.12);border-color:rgba(76,201,240,.4);color:var(--accent-blue);transform:scale(1.05)}}
-  a.cal-cell.today{{background:rgba(230,57,70,.15);border-color:rgba(230,57,70,.5);color:#fff}}
-  .dot{{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--accent-green)}}
+    --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  header{background:linear-gradient(135deg,#060a14,#0d1b2a,#060a14);border-bottom:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .logo h1{font-size:36px;font-weight:900;letter-spacing:-1px;background:linear-gradient(90deg,#e63946,#f4a261,#ffd166);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-transform:uppercase}
+  .logo p{font-size:11px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase;margin-top:6px}
+  .header-stats{display:flex;gap:24px}
+  .hstat{text-align:center}
+  .hstat-val{font-size:28px;font-weight:900;color:var(--accent-amber)}
+  .hstat-label{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+  .layout{max-width:1300px;margin:0 auto;padding:40px 28px 80px;display:grid;grid-template-columns:1fr 360px;gap:32px}
+  /* TABS */
+  .view-tabs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border)}
+  .tab{flex:1;padding:14px 10px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;background:none;border:none;color:var(--text-muted);cursor:pointer;transition:color .15s;border-bottom:2px solid transparent}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent-blue);border-bottom-color:var(--accent-blue)}
+  /* NAV BAR */
+  .cal-nav{background:var(--surface2);padding:12px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+  .nav-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:16px;width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0}
+  .nav-btn:hover{background:rgba(76,201,240,.1);border-color:rgba(76,201,240,.4);color:var(--accent-blue)}
+  #nav-label{font-size:17px;font-weight:800;color:var(--text);flex:1;text-align:center}
+  .cal-legend{display:flex;gap:14px;font-size:10px;color:var(--text-muted);flex-shrink:0}
+  .cal-legend span{display:flex;align-items:center;gap:5px}
+  /* CALENDAR VIEW */
+  .cal-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  #view-content{min-height:280px}
+  .cal-grid{padding:16px 16px 0}
+  .cal-headers{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px}
+  .cal-header{text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;padding:4px 0}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-dim);position:relative;transition:background .15s;text-decoration:none}
+  .cal-cell.empty{opacity:0;pointer-events:none}
+  .cal-cell.today{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent-red);font-weight:800}
+  a.cal-cell{color:var(--text);background:var(--surface2);border:1px solid var(--border)}
+  a.cal-cell:hover{background:rgba(76,201,240,.12);border-color:rgba(76,201,240,.4);color:var(--accent-blue);transform:scale(1.05)}
+  a.cal-cell.today{background:rgba(230,57,70,.15);border-color:rgba(230,57,70,.5);color:#fff}
+  .dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--accent-green)}
+  .cal-footer{padding:12px 20px;display:flex;gap:20px;border-top:1px solid var(--border);background:var(--surface2);margin-top:16px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted)}
+  /* WEEKLY VIEW */
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:16px}
+  .week-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;display:flex;flex-direction:column;gap:6px;min-height:120px;transition:border-color .15s,box-shadow .15s;text-decoration:none;color:inherit}
+  .week-card.has-report{border-color:rgba(76,201,240,.3)}
+  .week-card.has-report:hover{border-color:rgba(76,201,240,.6);box-shadow:0 4px 20px rgba(76,201,240,.1)}
+  .week-card.today .week-day,.week-card.today .week-date{color:var(--accent-red)}
+  .week-day{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)}
+  .week-date{font-size:13px;font-weight:700;color:var(--text)}
+  .week-headline{font-size:11px;color:var(--text-dim);line-height:1.5;flex:1}
+  .week-empty{font-size:11px;color:var(--text-muted);font-style:italic;flex:1;margin-top:4px}
+  .week-cta{font-size:10px;font-weight:700;color:var(--accent-blue);letter-spacing:.5px}
+  /* MONTHLY VIEW */
+  .monthly-list{padding:16px}
+  .monthly-count{font-size:11px;color:var(--text-muted);margin-bottom:14px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+  .monthly-item{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-bottom:8px;text-decoration:none;transition:border-color .15s,background .15s;color:inherit}
+  .monthly-item:hover{border-color:rgba(76,201,240,.3);background:rgba(76,201,240,.04)}
+  .monthly-date{font-size:11px;font-weight:700;color:var(--accent-amber);white-space:nowrap;min-width:100px}
+  .monthly-headline{font-size:13px;color:var(--text-dim);line-height:1.4;flex:1}
+  .monthly-arrow{color:var(--text-muted);font-size:14px;flex-shrink:0}
   /* SIDEBAR */
-  .sidebar{{display:flex;flex-direction:column;gap:20px}}
-  .latest-card{{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid rgba(230,57,70,.3);border-radius:14px;padding:22px;text-decoration:none;transition:border-color .2s,box-shadow .2s}}
-  .latest-card:hover{{border-color:rgba(230,57,70,.6);box-shadow:0 8px 32px rgba(230,57,70,.1)}}
-  .latest-label{{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent-red)}}
-  .latest-date{{font-size:13px;color:var(--text-muted)}}
-  .latest-headline{{font-size:15px;font-weight:700;color:var(--text);line-height:1.45}}
-  .latest-cta{{font-size:13px;font-weight:700;color:var(--accent-blue);margin-top:4px}}
-  .recent-section{{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}}
-  .recent-title{{background:var(--surface2);padding:14px 20px;font-size:13px;font-weight:800;color:var(--text);border-bottom:1px solid var(--border);letter-spacing:.3px}}
-  .recent-item{{display:flex;align-items:flex-start;gap:10px;padding:14px 20px;border-bottom:1px solid rgba(30,45,71,.5);text-decoration:none;transition:background .15s}}
-  .recent-item:last-child{{border-bottom:none}}
-  .recent-item:hover{{background:rgba(255,255,255,.02)}}
-  .recent-date{{font-size:11px;font-weight:700;color:var(--accent-amber);white-space:nowrap;min-width:80px;margin-top:2px}}
-  .recent-headline{{font-size:12px;color:var(--text-dim);line-height:1.5;flex:1}}
-  .recent-arrow{{color:var(--text-muted);font-size:14px;margin-top:1px}}
-  /* EMPTY STATE */
-  .empty-state{{padding:60px 24px;text-align:center;color:var(--text-muted)}}
-  .empty-state p{{font-size:14px;margin-top:8px}}
+  .sidebar{display:flex;flex-direction:column;gap:20px}
+  .latest-card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid rgba(230,57,70,.3);border-radius:14px;padding:22px;text-decoration:none;transition:border-color .2s,box-shadow .2s;color:inherit}
+  .latest-card:hover{border-color:rgba(230,57,70,.6);box-shadow:0 8px 32px rgba(230,57,70,.1)}
+  .latest-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent-red)}
+  .latest-date{font-size:13px;color:var(--text-muted)}
+  .latest-headline{font-size:15px;font-weight:700;color:var(--text);line-height:1.45}
+  .latest-cta{font-size:13px;font-weight:700;color:var(--accent-blue);margin-top:4px}
+  .recent-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .recent-title{background:var(--surface2);padding:14px 20px;font-size:13px;font-weight:800;color:var(--text);border-bottom:1px solid var(--border)}
+  .recent-item{display:flex;align-items:flex-start;gap:10px;padding:14px 20px;border-bottom:1px solid rgba(30,45,71,.5);text-decoration:none;transition:background .15s;color:inherit}
+  .recent-item:last-child{border-bottom:none}
+  .recent-item:hover{background:rgba(255,255,255,.02)}
+  .recent-date{font-size:11px;font-weight:700;color:var(--accent-amber);white-space:nowrap;min-width:80px;margin-top:2px}
+  .recent-headline{font-size:12px;color:var(--text-dim);line-height:1.5;flex:1}
+  .recent-arrow{color:var(--text-muted);font-size:14px;margin-top:1px}
+  .empty-state{padding:60px 24px;text-align:center;color:var(--text-muted)}
+  .empty-state p{font-size:14px;margin-top:8px}
+  /* TABLET */
+  @media(max-width:1100px){.week-grid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr;padding:24px 16px 60px}
+    header{padding:20px;flex-wrap:wrap;gap:12px}
+    .logo h1{font-size:28px}
+    .week-grid{grid-template-columns:repeat(4,1fr)}
+  }
+  /* MOBILE */
+  @media(max-width:600px){
+    header{padding:16px;flex-direction:column;align-items:flex-start}
+    .logo h1{font-size:22px}
+    .logo p{font-size:9px;letter-spacing:2px}
+    .header-stats{gap:16px}
+    .hstat-val{font-size:22px}
+    .layout{padding:16px 12px 40px;gap:20px}
+    .cal-nav{padding:8px 12px;gap:8px}
+    #nav-label{font-size:14px}
+    .cal-legend{display:none}
+    .week-grid{grid-template-columns:repeat(2,1fr);gap:6px;padding:10px}
+    .week-card{min-height:90px;padding:10px 8px}
+    .monthly-item{flex-wrap:wrap;gap:4px}
+    .monthly-date{min-width:auto}
+    .recent-item{flex-direction:column;gap:3px;padding:12px 16px}
+    .recent-date{min-width:auto}
+    .latest-card{padding:16px}
+    .latest-headline{font-size:14px}
+    .tab{font-size:10px;padding:12px 6px;letter-spacing:.4px}
+    .cal-grid{padding:8px 8px 0}
+    .cal-cell{font-size:12px;border-radius:6px}
+  }
+  @media(max-width:380px){
+    .logo h1{font-size:18px}
+    .week-grid{grid-template-columns:repeat(2,1fr)}
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="logo">
     <h1>War Room</h1>
-    <p>US–Iran Crisis · Daily Intelligence Archive</p>
+    <p>US&#8211;Iran Crisis &middot; Daily Intelligence Archive</p>
   </div>
   <div class="header-stats">
     <div class="hstat">
-      <div class="hstat-val">{total}</div>
+      <div class="hstat-val">%%TOTAL%%</div>
       <div class="hstat-label">Reports</div>
     </div>
   </div>
@@ -884,30 +935,180 @@ def render_index(reports: list):
 
 <div class="layout">
   <div class="cal-section">
+    <div class="view-tabs">
+      <button class="tab active" id="tab-calendar" onclick="setView(\'calendar\')">&#128197; Calendar</button>
+      <button class="tab" id="tab-weekly" onclick="setView(\'weekly\')">&#128202; Weekly</button>
+      <button class="tab" id="tab-monthly" onclick="setView(\'monthly\')">&#128203; Monthly</button>
+    </div>
     <div class="cal-nav">
-      <div><h2>{month_name}<span class="year">{yr}</span></h2></div>
+      <button class="nav-btn" onclick="navigate(-1)" title="Previous">&#8592;</button>
+      <div id="nav-label"></div>
+      <button class="nav-btn" onclick="navigate(1)" title="Next">&#8594;</button>
       <div class="cal-legend">
-        <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#06d6a0"/></svg> Report available</span>
-        <span style="color:var(--accent-red)">■ Today</span>
+        <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#06d6a0"/></svg> Report</span>
+        <span style="color:var(--accent-red)">&#9632; Today</span>
       </div>
     </div>
-    <div class="cal-grid">
-      {day_headers}
-      {cells}
-    </div>
-    {'<div class="empty-state"><div style="font-size:32px">📅</div><p>No reports yet. Run generate_report.py to create your first report.</p></div>' if not reports else ''}
+    <div id="view-content"></div>
   </div>
 
   <div class="sidebar">
-    {latest_html}
+    %%LATEST_HTML%%
     <div class="recent-section">
-      <div class="recent-title">📋 All Reports</div>
-      {recent if recent else '<div class="empty-state"><p>No reports yet.</p></div>'}
+      <div class="recent-title">&#128203; All Reports</div>
+      %%RECENT_HTML%%
     </div>
   </div>
 </div>
+
+<script>
+const REPORTS = %%REPORTS_JSON%%;
+const reportMap = {};
+REPORTS.forEach(r => { reportMap[r.date] = r; });
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const todayObj = new Date();
+const todayStr = isoDate(todayObj);
+let currentView = 'calendar';
+let navYear = todayObj.getFullYear();
+let navMonth = todayObj.getMonth();
+const weekStart = new Date(todayObj);
+weekStart.setDate(todayObj.getDate() - todayObj.getDay());
+
+function isoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + v).classList.add('active');
+  render();
+}
+
+function navigate(dir) {
+  if (currentView === 'weekly') {
+    weekStart.setDate(weekStart.getDate() + dir * 7);
+  } else {
+    navMonth += dir;
+    if (navMonth < 0) { navMonth = 11; navYear--; }
+    else if (navMonth > 11) { navMonth = 0; navYear++; }
+  }
+  render();
+}
+
+function renderCalendar() {
+  const first = new Date(navYear, navMonth, 1).getDay();
+  const days  = new Date(navYear, navMonth + 1, 0).getDate();
+  let h = '<div class="cal-grid"><div class="cal-headers">';
+  DAYS.forEach(d => { h += '<div class="cal-header">' + d + '</div>'; });
+  h += '</div><div class="cal-days">';
+  for (let i = 0; i < first; i++) h += '<div class="cal-cell empty"></div>';
+  for (let day = 1; day <= days; day++) {
+    const ds = navYear + '-' + String(navMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    const isToday = ds === todayStr;
+    const rep = reportMap[ds];
+    if (rep) {
+      const cls = 'cal-cell has-report' + (isToday ? ' today' : '');
+      h += '<a class="' + cls + '" href="' + rep.path + '" title="' + esc(rep.headline) + '">' + day + '<span class="dot"></span></a>';
+    } else if (isToday) {
+      h += '<div class="cal-cell today">' + day + '</div>';
+    } else {
+      h += '<div class="cal-cell">' + day + '</div>';
+    }
+  }
+  h += '</div></div>';
+  h += '<div class="cal-footer"><span class="legend-item"><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#06d6a0"/></svg> Report available</span><span class="legend-item" style="color:var(--accent-red)">&#9632; Today</span></div>';
+  return h;
+}
+
+function renderWeekly() {
+  let h = '<div class="week-grid">';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(weekStart, i);
+    const ds = isoDate(d);
+    const isToday = ds === todayStr;
+    const rep = reportMap[ds];
+    const dayLbl  = DAYS[d.getDay()];
+    const dateLbl = MONTHS[d.getMonth()].slice(0,3) + ' ' + d.getDate();
+    if (rep) {
+      const cls = 'week-card has-report' + (isToday ? ' today' : '');
+      h += '<a class="' + cls + '" href="' + rep.path + '">' +
+        '<div class="week-day">' + dayLbl + '</div>' +
+        '<div class="week-date">' + dateLbl + '</div>' +
+        '<div class="week-headline">' + esc(rep.headline) + '</div>' +
+        '<div class="week-cta">Read &#8594;</div>' +
+        '</a>';
+    } else {
+      const cls = 'week-card' + (isToday ? ' today' : '');
+      h += '<div class="' + cls + '">' +
+        '<div class="week-day">' + dayLbl + '</div>' +
+        '<div class="week-date">' + dateLbl + '</div>' +
+        '<div class="week-empty">No report</div>' +
+        '</div>';
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderMonthly() {
+  const pfx  = navYear + '-' + String(navMonth+1).padStart(2,'0');
+  const reps = REPORTS.filter(r => r.date.startsWith(pfx));
+  if (!reps.length) return '<div class="empty-state"><div style="font-size:32px">&#128197;</div><p>No reports for ' + MONTHS[navMonth] + ' ' + navYear + '.</p></div>';
+  let h = '<div class="monthly-list"><div class="monthly-count">' + reps.length + ' report' + (reps.length !== 1 ? 's' : '') + ' — ' + MONTHS[navMonth] + ' ' + navYear + '</div>';
+  reps.forEach(r => {
+    const d   = new Date(r.date + 'T12:00:00');
+    const lbl = DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()].slice(0,3) + ' ' + d.getDate();
+    h += '<a class="monthly-item" href="' + r.path + '">' +
+      '<div class="monthly-date">' + lbl + '</div>' +
+      '<div class="monthly-headline">' + esc(r.headline) + '</div>' +
+      '<span class="monthly-arrow">&#8594;</span>' +
+      '</a>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function render() {
+  const lbl     = document.getElementById('nav-label');
+  const content = document.getElementById('view-content');
+  if (currentView === 'calendar') {
+    lbl.textContent = MONTHS[navMonth] + ' ' + navYear;
+    content.innerHTML = renderCalendar();
+  } else if (currentView === 'weekly') {
+    const we = addDays(weekStart, 6);
+    lbl.textContent = MONTHS[weekStart.getMonth()].slice(0,3) + ' ' + weekStart.getDate() +
+      ' – ' + MONTHS[we.getMonth()].slice(0,3) + ' ' + we.getDate() + ', ' + we.getFullYear();
+    content.innerHTML = renderWeekly();
+  } else {
+    lbl.textContent = MONTHS[navMonth] + ' ' + navYear;
+    content.innerHTML = renderMonthly();
+  }
+}
+
+let _tx = 0;
+document.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, {passive: true});
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - _tx;
+  if (Math.abs(dx) > 60) navigate(dx > 0 ? -1 : 1);
+});
+
+render();
+</script>
 </body>
-</html>""")
+</html>'''
+
+    html = (page
+        .replace('%%REPORTS_JSON%%', reports_json)
+        .replace('%%TOTAL%%',        str(total))
+        .replace('%%LATEST_HTML%%',  latest_html)
+        .replace('%%RECENT_HTML%%',  recent_html))
+    INDEX_FILE.write_text(html)
 
 
 # ── Main ───────────────────────────────────────────────────────────────────

@@ -506,7 +506,65 @@ def render_daily_html(data: dict) -> str:
   #disqus_thread a{{color:var(--accent-blue)}}
   footer{{background:var(--surface);border-top:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:60px}}
   footer p{{font-size:12px;color:var(--text-muted)}}
-  @media(max-width:700px){{header,main,.market-strip,.comments-section{{padding:20px 16px}}.card-grid,.card-grid.two-col{{grid-template-columns:1fr}}}}
+  /* ── TABLET ── */
+  @media(max-width:1024px){{
+    .card-grid.two-col{{grid-template-columns:1fr}}
+    .stats-row{{grid-template-columns:repeat(3,1fr)}}
+  }}
+  /* ── MOBILE ── */
+  @media(max-width:768px){{
+    /* Header */
+    header{{flex-direction:column;align-items:flex-start;padding:16px;gap:12px}}
+    .header-meta{{text-align:left!important;width:100%;display:flex;align-items:center;justify-content:space-between}}
+    .logo-area>div>span{{font-size:36px!important}}
+    .logo-area h1{{font-size:22px}}
+    .logo-area .sub{{font-size:9px;letter-spacing:2px}}
+    /* Back bar */
+    .back-bar{{padding:8px 12px;flex-wrap:wrap}}
+    .back-bar span:last-child{{display:none}}
+    /* Market strip — horizontal scroll, no wrap */
+    .market-strip{{flex-wrap:nowrap;padding:8px 12px;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}}
+    .mkt-item,a.mkt-link{{min-width:68px;flex-shrink:0;padding:4px 6px}}
+    .mkt-label{{font-size:9px;letter-spacing:1px}}
+    .mkt-val{{font-size:13px}}
+    .mkt-chg{{font-size:10px}}
+    .mkt-divider{{width:1px;flex-shrink:0}}
+    /* Main & sections */
+    main{{padding:20px 12px 40px}}
+    .comments-section{{padding:0 12px 40px}}
+    .section-header{{gap:10px;margin-top:32px}}
+    .section-title h2{{font-size:17px}}
+    .section-count{{display:none}}
+    /* Cards */
+    .card-grid,.card-grid.two-col{{grid-template-columns:1fr}}
+    .news-card.featured .card-headline{{font-size:16px}}
+    .news-card.featured .card-body{{font-size:13px}}
+    /* Stats */
+    .stats-row{{grid-template-columns:repeat(2,1fr);gap:10px}}
+    .stat-val{{font-size:22px}}
+    /* Stock table — horizontal scroll with fade hint */
+    .stock-table-wrap{{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}}
+    .stock-table-wrap::after{{content:'';position:absolute;top:0;right:0;width:36px;height:100%;background:linear-gradient(90deg,transparent,rgba(9,12,20,.85));pointer-events:none;border-radius:0 14px 14px 0}}
+    table{{min-width:660px}}
+    .table-header-bar{{flex-direction:column;align-items:flex-start;gap:8px}}
+    /* Comments */
+    .comments-wrap{{padding:16px}}
+    .comments-header h2{{font-size:18px}}
+    /* Footer */
+    footer{{padding:14px 16px;flex-direction:column;gap:6px;text-align:center}}
+    /* Ticker */
+    .ticker-label{{font-size:10px;padding:2px 10px}}
+    .ticker-inner span{{font-size:11px}}
+  }}
+  /* ── SMALL MOBILE ── */
+  @media(max-width:400px){{
+    .logo-area h1{{font-size:18px}}
+    .section-title h2{{font-size:15px}}
+    .stats-row{{grid-template-columns:1fr 1fr}}
+    .stat-val{{font-size:20px}}
+    .card-headline{{font-size:14px}}
+    .mkt-item,a.mkt-link{{min-width:58px}}
+  }}
 </style>
 </head>
 <body>
@@ -532,7 +590,7 @@ def render_daily_html(data: dict) -> str:
       </div>
     </div>
   </div>
-  <div style="text-align:right">
+  <div class="header-meta" style="text-align:right">
     <div class="live-badge"><span class="live-dot"></span>Daily Intelligence</div>
     <div class="timestamp">{formatted_date}</div>
     <div class="war-day">Generated {NOW}</div>
@@ -748,7 +806,31 @@ def render_index(reports: list):
   .hstat-label{{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}}
   /* LAYOUT */
   .layout{{max-width:1300px;margin:0 auto;padding:40px 28px 80px;display:grid;grid-template-columns:1fr 360px;gap:32px}}
-  @media(max-width:900px){{.layout{{grid-template-columns:1fr}}}}
+  /* ── TABLET ── */
+  @media(max-width:900px){{
+    .layout{{grid-template-columns:1fr;padding:24px 16px 60px}}
+    header{{padding:20px;flex-wrap:wrap;gap:12px}}
+    .logo h1{{font-size:28px}}
+  }}
+  /* ── MOBILE ── */
+  @media(max-width:600px){{
+    header{{padding:16px;flex-direction:column;align-items:flex-start}}
+    .logo h1{{font-size:22px}}
+    .logo p{{font-size:9px;letter-spacing:2px}}
+    .header-stats{{gap:16px}}
+    .hstat-val{{font-size:22px}}
+    .layout{{padding:16px 12px 40px;gap:20px}}
+    .cal-nav{{padding:12px 16px;flex-direction:column;align-items:flex-start;gap:8px}}
+    .cal-nav h2{{font-size:17px}}
+    .cal-legend{{font-size:10px;gap:10px}}
+    .cal-grid{{padding:10px;gap:2px}}
+    .cal-header{{font-size:9px;padding:4px 0}}
+    .cal-cell{{font-size:12px;border-radius:6px}}
+    .recent-item{{flex-direction:column;gap:3px;padding:12px 16px}}
+    .recent-date{{min-width:auto}}
+    .latest-card{{padding:16px}}
+    .latest-headline{{font-size:14px}}
+  }}
   /* CALENDAR */
   .cal-section{{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}}
   .cal-nav{{background:var(--surface2);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}}
